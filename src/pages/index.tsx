@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './index.less';
 import Map from 'ol/Map';
 import Tile from 'ol/layer/Tile';
@@ -10,10 +10,21 @@ import {
   defaults as defaultInteractions,
   DragRotateAndZoom,
 } from 'ol/interaction';
+import { Button, Space } from 'antd';
+import {
+  ArrowUpOutlined,
+  PlusOutlined,
+  MinusOutlined,
+} from '@ant-design/icons';
 
 const Index: React.FC = () => {
+  const mapElement = useRef(null);
+  let map: any = null;
+
   useEffect(() => {
-    const map = new Map({
+    console.log('reload...');
+
+    map = new Map({
       // 设置挂载点为map
       target: 'map',
       // 设置图层
@@ -37,9 +48,47 @@ const Index: React.FC = () => {
       }),
       interactions: defaultInteractions().extend([new DragRotateAndZoom()]),
     });
-  });
+  }, []);
 
-  return <div id="map"></div>;
+  //缩放
+  const changeZoom = (type: string) => {
+    const view = map.getView();
+    const zoom = view.getZoom();
+    if (type === 'add') {
+      view.setZoom(zoom + 1);
+    } else {
+      view.setZoom(zoom - 1);
+    }
+  };
+
+  // 重置旋转角度
+  const resetRotation = () => {
+    map.getView().setRotation(0);
+  };
+
+  return (
+    <>
+      <div ref={mapElement} id="map"></div>
+      {/* 地图控件 */}
+      <Space className="controls-box" direction="vertical">
+        <Button
+          type="default"
+          icon={<PlusOutlined />}
+          onClick={() => changeZoom('add')}
+        />
+        <Button
+          type="default"
+          icon={<MinusOutlined />}
+          onClick={() => changeZoom('minus')}
+        />
+        <Button
+          type="default"
+          icon={<ArrowUpOutlined />}
+          onClick={resetRotation}
+        />
+      </Space>
+    </>
+  );
 };
 
 export default Index;
