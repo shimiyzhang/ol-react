@@ -4,10 +4,14 @@ import Map from 'ol/Map';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import View from 'ol/View';
-import MousePosition from 'ol/control/MousePosition';
 import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
-import { defaults as defaultControls } from 'ol/control';
+import {
+  defaults as defaultControls,
+  MousePosition,
+  ScaleLine,
+  FullScreen,
+} from 'ol/control';
 import {
   defaults as defaultInteractions,
   DragRotateAndZoom,
@@ -38,6 +42,18 @@ const Index: React.FC = () => {
       placeholder: '已移出',
     });
 
+    // 比例尺控件
+    const scaleLineControl = new ScaleLine({
+      units: 'metric', // 度量单位(metric公制)
+      // @ts-ignore
+      target: document.getElementsByClassName('scale-line')[0],
+    });
+
+    // 全屏控件
+    const fullScreenControl = new FullScreen({
+      className: 'ol-full-screen',
+    });
+
     // 初始化地图
     map = new Map({
       // 设置挂载点为map
@@ -65,7 +81,8 @@ const Index: React.FC = () => {
     });
     // 添加控件
     map.addControl(mousePositionControl);
-    console.log(map);
+    map.addControl(scaleLineControl);
+    map.addControl(fullScreenControl);
   }, []);
 
   //缩放
@@ -107,6 +124,8 @@ const Index: React.FC = () => {
       </Space>
       {/*鼠标位置控件*/}
       <Button className="mouse-position" type="default" />
+      {/*比例尺控件*/}
+      <Button className="scale-line" type="default" />
     </>
   );
 };
