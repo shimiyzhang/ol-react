@@ -1,15 +1,17 @@
-# umi project
+# ol-react
+
+openlayers demo with react
 
 ## Getting Started
 
 Install dependencies,
 
 ```bash
-$ yarn
+$ npm install
 ```
 
 Start the dev server,
 
 ```bash
-$ yarn start
+$ npm start
 ```
