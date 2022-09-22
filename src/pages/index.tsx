@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './index.less';
 import Map from 'ol/Map';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import View from 'ol/View';
+import MousePosition from 'ol/control/MousePosition';
+import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
 import { defaults as defaultControls } from 'ol/control';
 import {
@@ -24,6 +26,19 @@ const Index: React.FC = () => {
   useEffect(() => {
     console.log('reload...');
 
+    // 鼠标位置控件
+    const mousePositionControl = new MousePosition({
+      // 坐标格式
+      // createStringXY可用于将 {坐标} 格式化为字符串,参数为小数位数
+      coordinateFormat: createStringXY(2),
+      // 投影。默认是视图投影
+      projection: 'EPSG:4326',
+      // @ts-ignore
+      target: document.getElementsByClassName('mouse-position')[0],
+      placeholder: '已移出',
+    });
+
+    // 初始化地图
     map = new Map({
       // 设置挂载点为map
       target: 'map',
@@ -48,6 +63,9 @@ const Index: React.FC = () => {
       }),
       interactions: defaultInteractions().extend([new DragRotateAndZoom()]),
     });
+    // 添加控件
+    map.addControl(mousePositionControl);
+    console.log(map);
   }, []);
 
   //缩放
@@ -68,8 +86,8 @@ const Index: React.FC = () => {
 
   return (
     <>
-      <div ref={mapElement} id="map"></div>
-      {/* 地图控件 */}
+      <div ref={mapElement} id="map" />
+      {/* 缩放、旋转控件 */}
       <Space className="controls-box" direction="vertical">
         <Button
           type="default"
@@ -87,6 +105,8 @@ const Index: React.FC = () => {
           onClick={resetRotation}
         />
       </Space>
+      {/*鼠标位置控件*/}
+      <Button className="mouse-position" type="default" />
     </>
   );
 };
