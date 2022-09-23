@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './index.less';
 import Map from 'ol/Map';
 import Tile from 'ol/layer/Tile';
-import OSM from 'ol/source/OSM';
+import { OSM, XYZ } from 'ol/source';
 import View from 'ol/View';
 import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
@@ -22,7 +22,7 @@ import {
   PlusOutlined,
   MinusOutlined,
 } from '@ant-design/icons';
-import { XYZ } from 'ol/source';
+import { isNullString } from '@/utils/utils';
 
 const Index: React.FC = () => {
   const mapElement = useRef(null);
@@ -184,7 +184,7 @@ const Index: React.FC = () => {
       <Button className="mouse-position" type="default" />
       {/*比例尺控件*/}
       <Button className="scale-line" type="default" />
-      {map && layersRender()}
+      {!isNullString(map) && layersRender()}
     </>
   );
 };
