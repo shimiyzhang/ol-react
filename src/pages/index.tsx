@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './index.less';
 import Map from 'ol/Map';
 import Tile from 'ol/layer/Tile';
@@ -16,16 +16,17 @@ import {
   defaults as defaultInteractions,
   DragRotateAndZoom,
 } from 'ol/interaction';
-import { Button, Space } from 'antd';
+import { Button, Checkbox, Space } from 'antd';
 import {
   ArrowUpOutlined,
   PlusOutlined,
   MinusOutlined,
 } from '@ant-design/icons';
+import { XYZ } from 'ol/source';
 
 const Index: React.FC = () => {
   const mapElement = useRef(null);
-  let map: any = null;
+  const [map, setMap] = useState(null);
 
   useEffect(() => {
     console.log('reload...');
@@ -54,16 +55,31 @@ const Index: React.FC = () => {
       className: 'ol-full-screen',
     });
 
+    // 默认图层
+    const defaultLayer = new Tile({
+      // @ts-ignore
+      name: '默认图层',
+      source: new OSM(),
+      visible: true,
+    });
+
+    // 高德地图图层
+    const amapLayer = new Tile({
+      // @ts-ignore
+      name: '高德地图图层',
+      source: new XYZ({
+        url:
+          'http://wprd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}',
+      }),
+      visible: false,
+    });
+
     // 初始化地图
-    map = new Map({
+    const map = new Map({
       // 设置挂载点为map
       target: 'map',
       // 设置图层
-      layers: [
-        new Tile({
-          source: new OSM(),
-        }),
-      ],
+      layers: [defaultLayer, amapLayer],
       // 设置地图的可视区域，center为中心点，zoom为缩放的层级
       view: new View({
         center: fromLonLat([116.2, 39.56]),
@@ -83,10 +99,51 @@ const Index: React.FC = () => {
     map.addControl(mousePositionControl);
     map.addControl(scaleLineControl);
     map.addControl(fullScreenControl);
+
+    // @ts-ignore
+    setMap(map);
   }, []);
+
+  // 切换显示图层
+  const changeLayerVisible = (e: any) => {
+    console.log(e);
+    // @ts-ignore
+    const layers = map.getLayers().getArray();
+    layers.forEach((layer: any) => {
+      const name = layer.get('name');
+      // 选中时显示，未选中时隐藏
+      layer.setVisible(e.includes(name));
+    });
+  };
+
+  // 图层列表
+  const layersRender = () => {
+    // @ts-ignore
+    const layers = map.getLayers().getArray();
+    let options: any = [];
+    let defaultValue: string[] = [];
+    layers.forEach((layer: any) => {
+      const name = layer.get('name');
+      options.push({ label: name, value: name });
+      const visible = layer.getVisible();
+      if (visible) {
+        defaultValue.push(name);
+      }
+    });
+    return (
+      <Space className="layers-list">
+        <Checkbox.Group
+          options={options}
+          defaultValue={defaultValue}
+          onChange={changeLayerVisible}
+        />
+      </Space>
+    );
+  };
 
   //缩放
   const changeZoom = (type: string) => {
+    // @ts-ignore
     const view = map.getView();
     const zoom = view.getZoom();
     if (type === 'add') {
@@ -98,6 +155,7 @@ const Index: React.FC = () => {
 
   // 重置旋转角度
   const resetRotation = () => {
+    // @ts-ignore
     map.getView().setRotation(0);
   };
 
@@ -126,6 +184,7 @@ const Index: React.FC = () => {
       <Button className="mouse-position" type="default" />
       {/*比例尺控件*/}
       <Button className="scale-line" type="default" />
+      {map && layersRender()}
     </>
   );
 };
