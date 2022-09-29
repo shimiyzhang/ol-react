@@ -16,7 +16,7 @@ import {
   defaults as defaultInteractions,
   DragRotateAndZoom,
 } from 'ol/interaction';
-import { Button, Checkbox, Space } from 'antd';
+import { Button, Radio, Space } from 'antd';
 import {
   ArrowUpOutlined,
   PlusOutlined,
@@ -66,7 +66,7 @@ const Index: React.FC = () => {
     // 高德地图图层
     const amapLayer = new Tile({
       // @ts-ignore
-      name: '高德地图图层',
+      name: '高德图层',
       source: new XYZ({
         url:
           'http://wprd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}',
@@ -112,7 +112,7 @@ const Index: React.FC = () => {
     layers.forEach((layer: any) => {
       const name = layer.get('name');
       // 选中时显示，未选中时隐藏
-      layer.setVisible(e.includes(name));
+      layer.setVisible(e.target.value === name);
     });
   };
 
@@ -121,21 +121,19 @@ const Index: React.FC = () => {
     // @ts-ignore
     const layers = map.getLayers().getArray();
     let options: any = [];
-    let defaultValue: string[] = [];
+    let defaultValue: string = '默认图层';
     layers.forEach((layer: any) => {
       const name = layer.get('name');
       options.push({ label: name, value: name });
-      const visible = layer.getVisible();
-      if (visible) {
-        defaultValue.push(name);
-      }
     });
     return (
       <Space className="layers-list">
-        <Checkbox.Group
+        <Radio.Group
           options={options}
           defaultValue={defaultValue}
           onChange={changeLayerVisible}
+          optionType="button"
+          buttonStyle="solid"
         />
       </Space>
     );
