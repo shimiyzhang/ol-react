@@ -121,27 +121,28 @@ const Index: React.FC = () => {
       geometry: new Point(fromLonLat([113.62, 34.75])),
     });
 
-    // 设置点的样式
-    point.setStyle(
-      new Style({
-        // 填充色
+    // 定义统一的图形样式
+    const style = new Style({
+      // 填充色
+      fill: new Fill({
+        color: 'rgba(255,255,255,0.5)',
+      }),
+      // 边线颜色
+      stroke: new Stroke({
+        color: '#ffcc33',
+        width: 2,
+      }),
+      // 形状
+      image: new CircleStyle({
+        radius: 12,
         fill: new Fill({
-          color: 'rgba(255,255,255,0.5)',
-        }),
-        // 边线颜色
-        stroke: new Stroke({
           color: '#ffcc33',
-          width: 2,
-        }),
-        // 形状
-        image: new CircleStyle({
-          radius: 12,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
         }),
       }),
-    );
+    });
+
+    // 设置点的样式
+    point.setStyle(style);
 
     // 创建一个线
     const line = new Feature({
@@ -152,26 +153,7 @@ const Index: React.FC = () => {
     });
 
     // 设置线的样式
-    line.setStyle(
-      new Style({
-        // 填充色
-        fill: new Fill({
-          color: 'rgba(255,255,255,0.5)',
-        }),
-        // 边线颜色
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-        // 形状
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
-        }),
-      }),
-    );
+    line.setStyle(style);
 
     // 创建一个圆
     const circle = new Feature({
@@ -179,26 +161,7 @@ const Index: React.FC = () => {
     });
 
     // 设置圆的样式
-    circle.setStyle(
-      new Style({
-        // 填充色
-        fill: new Fill({
-          color: 'rgba(255,255,255,0.5)',
-        }),
-        // 边线颜色
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-        // 形状
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
-        }),
-      }),
-    );
+    circle.setStyle(style);
 
     //创建一个圆
     const inCircle = new Circle(fromLonLat([113.62, 34.75]), 700000);
@@ -214,26 +177,7 @@ const Index: React.FC = () => {
     });
 
     // 设置多边形的样式
-    square.setStyle(
-      new Style({
-        // 填充色
-        fill: new Fill({
-          color: 'rgba(255,255,255,0.5)',
-        }),
-        // 边线颜色
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-        // 形状
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
-        }),
-      }),
-    );
+    square.setStyle(style);
 
     //根据范围获取多边形
     const rectangle = new Feature({
@@ -241,23 +185,7 @@ const Index: React.FC = () => {
       geometry: fromExtent([13000000.0, 5000000.0, 15000000.0, 6000000.0]),
     });
 
-    rectangle.setStyle(
-      new Style({
-        fill: new Fill({
-          color: 'rgba(255, 255, 255, 0.5)',
-        }),
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
-        }),
-      }),
-    );
+    rectangle.setStyle(style);
 
     //创建一个多变形
     const polygon = new Feature({
@@ -271,26 +199,7 @@ const Index: React.FC = () => {
       ]),
     });
     //设置区样式信息
-    polygon.setStyle(
-      new Style({
-        //填充色
-        fill: new Fill({
-          color: 'rgba(255, 255, 255, 0.5)',
-        }),
-        //边线颜色
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-        //形状
-        image: new CircleStyle({
-          radius: 7,
-          fill: new Fill({
-            color: '#ffcc33',
-          }),
-        }),
-      }),
-    );
+    polygon.setStyle(style);
 
     // 实例化一个矢量图层Vector作为绘制层
     const source = new Vector({
