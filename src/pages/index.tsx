@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './index.less';
 import Map from 'ol/Map';
-import Tile from 'ol/layer/Tile';
-import { OSM, XYZ } from 'ol/source';
+import { Tile, Vector as VectorLayer } from 'ol/layer';
+import { OSM, Vector, XYZ } from 'ol/source';
 import View from 'ol/View';
 import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
@@ -23,6 +23,10 @@ import {
   MinusOutlined,
 } from '@ant-design/icons';
 import { isNullString } from '@/utils/utils';
+import { Feature } from 'ol';
+import { LineString, Point, Circle, Polygon } from 'ol/geom';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
+import { fromCircle, fromExtent } from 'ol/geom/Polygon';
 
 const Index: React.FC = () => {
   const mapElement = useRef(null);
@@ -37,7 +41,7 @@ const Index: React.FC = () => {
       // createStringXY可用于将 {坐标} 格式化为字符串,参数为小数位数
       coordinateFormat: createStringXY(2),
       // 投影。默认是视图投影
-      projection: 'EPSG:4326',
+      // projection: 'EPSG:4326',
       // @ts-ignore
       target: document.getElementsByClassName('mouse-position')[0],
       placeholder: '已移出',
@@ -86,7 +90,7 @@ const Index: React.FC = () => {
         zoom: 5,
         minZoom: 3,
         maxZoom: 10,
-        rotation: 1, // 初始旋转（以弧度为单位）(顺时针正旋转，0表示北)
+        rotation: 0, // 初始旋转（以弧度为单位）(顺时针正旋转，0表示北)
       }),
       controls: defaultControls({
         zoom: false,
@@ -99,6 +103,208 @@ const Index: React.FC = () => {
     map.addControl(mousePositionControl);
     map.addControl(scaleLineControl);
     map.addControl(fullScreenControl);
+
+    // 监听事件
+    map.on('click', (event) => {
+      console.log('click', event);
+    });
+    map.on('singleclick', (event) => {
+      console.log('singleclick', event);
+    });
+    map.on('dblclick', (event) => {
+      console.log('dblclick', event);
+    });
+
+    // 创建一个矢量对象(点)
+    const point = new Feature({
+      // 定义几何类型
+      geometry: new Point(fromLonLat([113.62, 34.75])),
+    });
+
+    // 设置点的样式
+    point.setStyle(
+      new Style({
+        // 填充色
+        fill: new Fill({
+          color: 'rgba(255,255,255,0.5)',
+        }),
+        // 边线颜色
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        // 形状
+        image: new CircleStyle({
+          radius: 12,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    // 创建一个线
+    const line = new Feature({
+      geometry: new LineString([
+        fromLonLat([103.62, 34.75]),
+        fromLonLat([123.62, 34.75]),
+      ]),
+    });
+
+    // 设置线的样式
+    line.setStyle(
+      new Style({
+        // 填充色
+        fill: new Fill({
+          color: 'rgba(255,255,255,0.5)',
+        }),
+        // 边线颜色
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        // 形状
+        image: new CircleStyle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    // 创建一个圆
+    const circle = new Feature({
+      geometry: new Circle(fromLonLat([113.62, 34.75]), 700000),
+    });
+
+    // 设置圆的样式
+    circle.setStyle(
+      new Style({
+        // 填充色
+        fill: new Fill({
+          color: 'rgba(255,255,255,0.5)',
+        }),
+        // 边线颜色
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        // 形状
+        image: new CircleStyle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    //创建一个圆
+    const inCircle = new Circle(fromLonLat([113.62, 34.75]), 700000);
+
+    //根据圆获取多边形
+    const square = new Feature({
+      // 从圆创建常规多边形
+      // 参数
+      // circle 圆几何图形
+      // sides 多边形的边数。默认值为 32。
+      // angle 多边形的第一个顶点的起始角度（以逆时针弧度表示）。0 表示东。默认值为 0。
+      geometry: fromCircle(inCircle, 4, 150),
+    });
+
+    // 设置多边形的样式
+    square.setStyle(
+      new Style({
+        // 填充色
+        fill: new Fill({
+          color: 'rgba(255,255,255,0.5)',
+        }),
+        // 边线颜色
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        // 形状
+        image: new CircleStyle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    //根据范围获取多边形
+    const rectangle = new Feature({
+      // xy布局(minx, miny, maxx, maxy)
+      geometry: fromExtent([13000000.0, 5000000.0, 15000000.0, 6000000.0]),
+    });
+
+    rectangle.setStyle(
+      new Style({
+        fill: new Fill({
+          color: 'rgba(255, 255, 255, 0.5)',
+        }),
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        image: new CircleStyle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    //创建一个多变形
+    const polygon = new Feature({
+      // 定义多边形的线性环数组(第一个线性环定义了多边形的外部边界或表面)
+      geometry: new Polygon([
+        [
+          [10000000.0, 6000000.0],
+          [12000000.0, 5500000.0],
+          [10000000.0, 5000000.0],
+        ],
+      ]),
+    });
+    //设置区样式信息
+    polygon.setStyle(
+      new Style({
+        //填充色
+        fill: new Fill({
+          color: 'rgba(255, 255, 255, 0.5)',
+        }),
+        //边线颜色
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+        //形状
+        image: new CircleStyle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33',
+          }),
+        }),
+      }),
+    );
+
+    // 实例化一个矢量图层Vector作为绘制层
+    const source = new Vector({
+      // @ts-ignore
+      features: [point, line, circle, square, rectangle, polygon],
+    });
+
+    // 创建一个图层
+    const vector = new VectorLayer({
+      source: source,
+    });
+
+    //将绘制层添加到地图容器中
+    map.addLayer(vector);
 
     // @ts-ignore
     setMap(map);
@@ -124,7 +330,9 @@ const Index: React.FC = () => {
     let defaultValue: string = '默认图层';
     layers.forEach((layer: any) => {
       const name = layer.get('name');
-      options.push({ label: name, value: name });
+      if (name) {
+        options.push({ label: name, value: name });
+      }
     });
     return (
       <Space className="layers-list">
