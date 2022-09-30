@@ -23,6 +23,7 @@
     "@ant-design/icons": "^4.7.0",
     "@ant-design/pro-layout": "^6.5.0",
     "antd": "^4.23.2",
+    "chaikin-smooth": "^1.0.4",
     "ol": "^7.1.0",
     "react": "17.x",
     "react-dom": "17.x",

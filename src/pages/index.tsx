@@ -29,6 +29,8 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
 import Draw from 'ol/interaction/Draw';
 import DrewLayer from './components/drewLayer';
+// @ts-ignore
+import smooth from 'chaikin-smooth';
 
 let freeDraw: any = '';
 
@@ -280,6 +282,16 @@ const Index: React.FC = () => {
     map.getView().setRotation(0);
   };
 
+  // 转换为贝塞尔坐标
+  const makeSmooth = (path: any, numIterations: any) => {
+    numIterations = Math.min(Math.max(numIterations, 1), 10);
+    while (numIterations > 0) {
+      path = smooth(path);
+      numIterations--;
+    }
+    return path;
+  };
+
   // 绘制图形
   const drewBSl = (value: any) => {
     switch (value) {
@@ -297,6 +309,10 @@ const Index: React.FC = () => {
         freeDraw.on('drawend', (event: any) => {
           const feat = event.feature;
           feat.setProperties({ type: 'drew-line' });
+          const geometry: any = feat.getGeometry();
+          const coords = geometry.getCoordinates();
+          const smoothened = makeSmooth(coords, 5);
+          geometry.setCoordinates(smoothened);
         });
 
         // @ts-ignore
