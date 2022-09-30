@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './index.less';
 import Map from 'ol/Map';
 import { Tile, Vector as VectorLayer } from 'ol/layer';
-import { OSM, Vector, XYZ } from 'ol/source';
+import { OSM, Vector as VectorSource, XYZ } from 'ol/source';
 import View from 'ol/View';
 import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
@@ -27,6 +27,18 @@ import { Feature } from 'ol';
 import { LineString, Point, Circle, Polygon } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
+import Draw from 'ol/interaction/Draw';
+import DrewLayer from './components/drewLayer';
+
+let freeDraw: any = '';
+
+// 为矢量图层提供要素源。此源提供的矢量要素适合编辑
+const drawSource = new VectorSource({ wrapX: false });
+
+// 实例化一个矢量图层drawLayer作为绘制层
+const drawLayer = new VectorLayer({
+  source: drawSource,
+});
 
 const Index: React.FC = () => {
   const mapElement = useRef(null);
@@ -103,17 +115,6 @@ const Index: React.FC = () => {
     map.addControl(mousePositionControl);
     map.addControl(scaleLineControl);
     map.addControl(fullScreenControl);
-
-    // 监听事件
-    map.on('click', (event) => {
-      console.log('click', event);
-    });
-    map.on('singleclick', (event) => {
-      console.log('singleclick', event);
-    });
-    map.on('dblclick', (event) => {
-      console.log('dblclick', event);
-    });
 
     // 创建一个矢量对象(点)
     const point = new Feature({
@@ -202,18 +203,21 @@ const Index: React.FC = () => {
     polygon.setStyle(style);
 
     // 实例化一个矢量图层Vector作为绘制层
-    const source = new Vector({
+    const source = new VectorSource({
       // @ts-ignore
       features: [point, line, circle, square, rectangle, polygon],
     });
 
-    // 创建一个图层
-    const vector = new VectorLayer({
+    // 创建一个用于渲染图形的图层
+    const graphLayer = new VectorLayer({
       source: source,
     });
 
     //将绘制层添加到地图容器中
-    map.addLayer(vector);
+    map.addLayer(graphLayer);
+
+    //将绘制层添加到地图容器中
+    map.addLayer(drawLayer);
 
     // @ts-ignore
     setMap(map);
@@ -226,8 +230,10 @@ const Index: React.FC = () => {
     const layers = map.getLayers().getArray();
     layers.forEach((layer: any) => {
       const name = layer.get('name');
-      // 选中时显示，未选中时隐藏
-      layer.setVisible(e.target.value === name);
+      // 仅切换默认图层和高德地图图层
+      if (!isNullString(name)) {
+        layer.setVisible(e.target.value === name);
+      }
     });
   };
 
@@ -274,9 +280,89 @@ const Index: React.FC = () => {
     map.getView().setRotation(0);
   };
 
+  // 绘制图形
+  const drewBSl = (value: any) => {
+    switch (value) {
+      case '画线':
+        // 移除绘制
+        removeDrew();
+        // 实例化交互绘制类对象
+        freeDraw = new Draw({
+          //绘制要素的目标源
+          source: drawSource,
+          // 几何图形的几何类型
+          type: 'LineString',
+        });
+        // 为绘制类对象添加监听事件
+        freeDraw.on('drawend', (event: any) => {
+          const feat = event.feature;
+          feat.setProperties({ type: 'drew-line' });
+        });
+
+        // @ts-ignore
+        map.addInteraction(freeDraw);
+        break;
+      case '区域':
+        // 移除绘制
+        removeDrew();
+        freeDraw = new Draw({
+          source: drawSource,
+          type: 'Polygon',
+          freehand: true,
+        });
+        freeDraw.on('drawend', (event: any) => {
+          const feat = event.feature;
+          feat.setProperties({ type: 'drew-polygon' });
+        });
+
+        // @ts-ignore
+        map.addInteraction(freeDraw);
+        break;
+      case '圆':
+        // 移除绘制
+        removeDrew();
+        freeDraw = new Draw({
+          source: drawSource,
+          type: 'Circle',
+          freehand: true,
+        });
+        freeDraw.on('drawend', (event: any) => {
+          const feat = event.feature;
+          feat.setProperties({ type: 'drew-circle' });
+        });
+
+        // @ts-ignore
+        map.addInteraction(freeDraw);
+        break;
+      case '清除':
+        const features = drawSource.getFeatures();
+        if (!isNullString(features) && features.length > 0) {
+          const num = features.length;
+          drawSource.removeFeature(features[num - 1]);
+        }
+        break;
+      case '全部清除':
+        drawSource.clear();
+        // @ts-ignore
+        map.removeInteraction(freeDraw);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // 移除绘制
+  const removeDrew = () => {
+    if (!isNullString(freeDraw)) {
+      // @ts-ignore
+      map.removeInteraction(freeDraw);
+    }
+  };
+
   return (
     <>
       <div ref={mapElement} id="map" />
+
       {/* 缩放、旋转控件 */}
       <Space className="controls-box" direction="vertical">
         <Button
@@ -295,10 +381,16 @@ const Index: React.FC = () => {
           onClick={resetRotation}
         />
       </Space>
+
       {/*鼠标位置控件*/}
       <Button className="mouse-position" type="default" />
+
       {/*比例尺控件*/}
       <Button className="scale-line" type="default" />
+
+      {/* 绘制菜单 */}
+      <DrewLayer onClickDrew={(value) => drewBSl(value)} />
+
       {!isNullString(map) && layersRender()}
     </>
   );
