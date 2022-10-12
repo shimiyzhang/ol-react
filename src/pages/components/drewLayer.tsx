@@ -9,6 +9,7 @@ import {
   Loading3QuartersOutlined,
   RiseOutlined,
 } from '@ant-design/icons';
+import Cloud from '@/assets/images/cloud.svg';
 
 interface CreateFormProps {
   onClickDrew: (value: string) => void; // 绘制
@@ -26,6 +27,15 @@ const DrewLayer: React.FC<CreateFormProps> = (props) => {
           className={styles.drewBtn}
           icon={<RiseOutlined />}
           onClick={() => onClickDrew('画线')}
+        />
+      </Tooltip>
+      <Tooltip title="云" placement="right">
+        <Button
+          className={styles.drewBtn}
+          icon={
+            <img src={Cloud} style={{ width: 22, height: 25, marginTop: -4 }} />
+          }
+          onClick={() => onClickDrew('云')}
         />
       </Tooltip>
       <Tooltip title="区域" placement="right">

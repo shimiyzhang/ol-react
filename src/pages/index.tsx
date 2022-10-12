@@ -5,12 +5,10 @@ import { Tile, Vector as VectorLayer } from 'ol/layer';
 import { OSM, Vector as VectorSource, XYZ } from 'ol/source';
 import View from 'ol/View';
 import { createStringXY } from 'ol/coordinate';
-import { fromLonLat } from 'ol/proj';
 import {
   defaults as defaultControls,
   MousePosition,
   ScaleLine,
-  FullScreen,
 } from 'ol/control';
 import {
   defaults as defaultInteractions,
@@ -25,12 +23,21 @@ import {
 import { isNullString } from '@/utils/utils';
 import { Feature } from 'ol';
 import { LineString, Point, Circle, Polygon } from 'ol/geom';
-import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
+import {
+  Circle as CircleStyle,
+  Fill,
+  Stroke,
+  Style,
+  RegularShape,
+} from 'ol/style';
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
 import Draw from 'ol/interaction/Draw';
 import DrewLayer from './components/drewLayer';
+import { getLength } from 'ol/sphere';
 // @ts-ignore
 import smooth from 'chaikin-smooth';
+import { boundingExtent, getCenter } from 'ol/extent';
+import * as turf from '@turf/turf';
 
 let freeDraw: any = '';
 
@@ -68,11 +75,6 @@ const Index: React.FC = () => {
       target: document.getElementsByClassName('scale-line')[0],
     });
 
-    // 全屏控件
-    const fullScreenControl = new FullScreen({
-      className: 'ol-full-screen',
-    });
-
     // 默认图层
     const defaultLayer = new Tile({
       // @ts-ignore
@@ -100,7 +102,8 @@ const Index: React.FC = () => {
       layers: [defaultLayer, amapLayer],
       // 设置地图的可视区域，center为中心点，zoom为缩放的层级
       view: new View({
-        center: fromLonLat([116.2, 39.56]),
+        projection: 'EPSG:4326', // 指定投影采用4326坐标系
+        center: [116.2, 39.56],
         zoom: 5,
         minZoom: 3,
         maxZoom: 10,
@@ -116,12 +119,11 @@ const Index: React.FC = () => {
     // 添加控件
     map.addControl(mousePositionControl);
     map.addControl(scaleLineControl);
-    map.addControl(fullScreenControl);
 
     // 创建一个矢量对象(点)
     const point = new Feature({
       // 定义几何类型
-      geometry: new Point(fromLonLat([113.62, 34.75])),
+      geometry: new Point([113.62, 34.75]),
     });
 
     // 定义统一的图形样式
@@ -150,8 +152,8 @@ const Index: React.FC = () => {
     // 创建一个线
     const line = new Feature({
       geometry: new LineString([
-        fromLonLat([103.62, 34.75]),
-        fromLonLat([123.62, 34.75]),
+        [103.62, 34.75],
+        [123.62, 34.75],
       ]),
     });
 
@@ -160,14 +162,14 @@ const Index: React.FC = () => {
 
     // 创建一个圆
     const circle = new Feature({
-      geometry: new Circle(fromLonLat([113.62, 34.75]), 700000),
+      geometry: new Circle([113.62, 34.75], 700000),
     });
 
     // 设置圆的样式
     circle.setStyle(style);
 
     //创建一个圆
-    const inCircle = new Circle(fromLonLat([113.62, 34.75]), 700000);
+    const inCircle = new Circle([113.62, 34.75], 700000);
 
     //根据圆获取多边形
     const square = new Feature({
@@ -207,7 +209,7 @@ const Index: React.FC = () => {
     // 实例化一个矢量图层Vector作为绘制层
     const source = new VectorSource({
       // @ts-ignore
-      features: [point, line, circle, square, rectangle, polygon],
+      // features: [point, line, circle, square, rectangle, polygon],
     });
 
     // 创建一个用于渲染图形的图层
@@ -292,6 +294,49 @@ const Index: React.FC = () => {
     return path;
   };
 
+  const styleFunction = (feature: any) => {
+    var geometry = feature.getGeometry();
+    const coords = geometry.getCoordinates();
+    var styles = [
+      //设置线的样式
+      new Style({
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2,
+        }),
+      }),
+    ];
+    let index = 0;
+    geometry.forEachSegment(function (start: any, end: any) {
+      var dx = end[0] - start[0];
+      var dy = end[1] - start[1];
+      var rotation = Math.atan2(dy, dx);
+      // 稀疏处理
+      index++;
+      if (index % 100 === 0) {
+        styles.push(
+          new Style({
+            geometry: new Point(end),
+            image: new RegularShape({
+              // 星形和正多边形的点数。对于多边形，点数就是边数。
+              points: 3,
+              // 正多边形的半径。
+              radius: 12,
+              rotateWithView: false,
+              rotation: -rotation,
+              displacement: [6, 6],
+              fill: new Fill({
+                color: '#ffcc33',
+              }),
+            }),
+          }),
+        );
+      }
+    });
+
+    return styles;
+  };
+
   // 绘制图形
   const drewBSl = (value: any) => {
     switch (value) {
@@ -304,6 +349,7 @@ const Index: React.FC = () => {
           source: drawSource,
           // 几何图形的几何类型
           type: 'LineString',
+          freehand: true,
         });
         // 为绘制类对象添加监听事件
         freeDraw.on('drawend', (event: any) => {
@@ -312,9 +358,110 @@ const Index: React.FC = () => {
           const geometry: any = feat.getGeometry();
           const coords = geometry.getCoordinates();
           const smoothened = makeSmooth(coords, 5);
+          const features: any = [];
+          let first = smoothened[0];
+          for (let i = 0; i < smoothened.length - 1; i++) {
+            const line = new LineString([first, smoothened[i]]);
+            const length = getLength(line);
+            console.log('length', length);
+            if (length > 500000) {
+              first = smoothened[i];
+              var dx = smoothened[i + 1][0] - smoothened[i][0];
+              var dy = smoothened[i + 1][1] - smoothened[i][1];
+              var rotation = Math.atan2(dy, dx);
+              const feature = new Feature({
+                geometry: new Point(smoothened[i]),
+              });
+              feature.setStyle(
+                new Style({
+                  geometry: new Point(smoothened[i]),
+                  image: new RegularShape({
+                    // 星形和正多边形的点数。对于多边形，点数就是边数。
+                    points: 3,
+                    // 正多边形的半径。
+                    radius: 12,
+                    rotateWithView: false,
+                    rotation: -rotation,
+                    displacement: [6, 6],
+                    fill: new Fill({
+                      color: '#0099ff',
+                    }),
+                  }),
+                }),
+              );
+              features.push(feature);
+            }
+          }
+          drawSource.addFeatures(features);
           geometry.setCoordinates(smoothened);
         });
 
+        // @ts-ignore
+        map.addInteraction(freeDraw);
+        break;
+      case '云':
+        // 移除绘制
+        removeDrew();
+        freeDraw = new Draw({
+          source: drawSource,
+          type: 'Polygon',
+          freehand: false,
+        });
+        freeDraw.on('drawend', (event: any) => {
+          const feat = event.feature;
+          feat.setProperties({ type: 'drew-polygon' });
+          const geometry: any = feat.getGeometry();
+          const coords = geometry.getCoordinates()[0];
+          console.log('coords', coords);
+          let allPolt;
+          for (let i = 0; i < coords.length - 1; i++) {
+            const extent = boundingExtent([coords[i], coords[i + 1]]);
+            const center = getCenter(extent);
+            const line = new LineString([coords[i], coords[i + 1]]);
+            const length = getLength(line);
+            const radius = length / 2;
+            const circle = new Feature({
+              geometry: new Circle(center, radius),
+            });
+            for (let j = 1; j < 5; j++) {
+              const polygon = new Feature({
+                // 从圆创建常规多边形
+                // 参数
+                // circle 圆几何图形
+                // sides 多边形的边数。默认值为 32。
+                // angle 多边形的第一个顶点的起始角度（以逆时针弧度表示）。0 表示东。默认值为 0。
+                geometry: fromCircle(
+                  new Circle(center, radius),
+                  32,
+                  (Math.PI / 360) * 2.25 * j,
+                ),
+              });
+              const points = polygon.getGeometry()?.getCoordinates();
+              // @ts-ignore
+              const poly = turf.polygon(points);
+              if (allPolt) {
+                allPolt = turf.union(allPolt, poly);
+              } else {
+                allPolt = poly;
+              }
+              console.log('points', points);
+            }
+          }
+          console.log('allPolt', allPolt);
+          const allCoords: any = allPolt?.geometry.coordinates;
+          const cloud = new Feature({
+            geometry: new Polygon([allCoords[0]]),
+          });
+          const cloudStyle = new Style({
+            fill: new Fill({
+              color: '#ffffff',
+            }),
+          });
+          // feat.setStyle(cloudStyle);
+          // cloud.setStyle(cloudStyle);
+          feat.setGeometry();
+          drawSource.addFeatures([cloud]);
+        });
         // @ts-ignore
         map.addInteraction(freeDraw);
         break;
@@ -330,7 +477,6 @@ const Index: React.FC = () => {
           const feat = event.feature;
           feat.setProperties({ type: 'drew-polygon' });
         });
-
         // @ts-ignore
         map.addInteraction(freeDraw);
         break;
@@ -352,6 +498,7 @@ const Index: React.FC = () => {
         break;
       case '清除':
         const features = drawSource.getFeatures();
+        console.log('features', features);
         if (!isNullString(features) && features.length > 0) {
           const num = features.length;
           drawSource.removeFeature(features[num - 1]);
