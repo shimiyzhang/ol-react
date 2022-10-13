@@ -33,11 +33,9 @@ import {
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
 import Draw from 'ol/interaction/Draw';
 import DrewLayer from './components/drewLayer';
-import { getLength } from 'ol/sphere';
 // @ts-ignore
 import smooth from 'chaikin-smooth';
-import { boundingExtent, getCenter } from 'ol/extent';
-import * as turf from '@turf/turf';
+import { drawCloud } from './components/drawUtils';
 
 let freeDraw: any = '';
 
@@ -294,49 +292,6 @@ const Index: React.FC = () => {
     return path;
   };
 
-  const styleFunction = (feature: any) => {
-    var geometry = feature.getGeometry();
-    const coords = geometry.getCoordinates();
-    var styles = [
-      //设置线的样式
-      new Style({
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2,
-        }),
-      }),
-    ];
-    let index = 0;
-    geometry.forEachSegment(function (start: any, end: any) {
-      var dx = end[0] - start[0];
-      var dy = end[1] - start[1];
-      var rotation = Math.atan2(dy, dx);
-      // 稀疏处理
-      index++;
-      if (index % 100 === 0) {
-        styles.push(
-          new Style({
-            geometry: new Point(end),
-            image: new RegularShape({
-              // 星形和正多边形的点数。对于多边形，点数就是边数。
-              points: 3,
-              // 正多边形的半径。
-              radius: 12,
-              rotateWithView: false,
-              rotation: -rotation,
-              displacement: [6, 6],
-              fill: new Fill({
-                color: '#ffcc33',
-              }),
-            }),
-          }),
-        );
-      }
-    });
-
-    return styles;
-  };
-
   // 绘制图形
   const drewBSl = (value: any) => {
     switch (value) {
@@ -358,41 +313,6 @@ const Index: React.FC = () => {
           const geometry: any = feat.getGeometry();
           const coords = geometry.getCoordinates();
           const smoothened = makeSmooth(coords, 5);
-          const features: any = [];
-          let first = smoothened[0];
-          for (let i = 0; i < smoothened.length - 1; i++) {
-            const line = new LineString([first, smoothened[i]]);
-            const length = getLength(line);
-            console.log('length', length);
-            if (length > 500000) {
-              first = smoothened[i];
-              var dx = smoothened[i + 1][0] - smoothened[i][0];
-              var dy = smoothened[i + 1][1] - smoothened[i][1];
-              var rotation = Math.atan2(dy, dx);
-              const feature = new Feature({
-                geometry: new Point(smoothened[i]),
-              });
-              feature.setStyle(
-                new Style({
-                  geometry: new Point(smoothened[i]),
-                  image: new RegularShape({
-                    // 星形和正多边形的点数。对于多边形，点数就是边数。
-                    points: 3,
-                    // 正多边形的半径。
-                    radius: 12,
-                    rotateWithView: false,
-                    rotation: -rotation,
-                    displacement: [6, 6],
-                    fill: new Fill({
-                      color: '#0099ff',
-                    }),
-                  }),
-                }),
-              );
-              features.push(feature);
-            }
-          }
-          drawSource.addFeatures(features);
           geometry.setCoordinates(smoothened);
         });
 
@@ -405,62 +325,28 @@ const Index: React.FC = () => {
         freeDraw = new Draw({
           source: drawSource,
           type: 'Polygon',
-          freehand: false,
+          freehand: true,
         });
         freeDraw.on('drawend', (event: any) => {
           const feat = event.feature;
           feat.setProperties({ type: 'drew-polygon' });
           const geometry: any = feat.getGeometry();
-          const coords = geometry.getCoordinates()[0];
+          const coords = geometry.getCoordinates();
+
           console.log('coords', coords);
-          let allPolt;
-          for (let i = 0; i < coords.length - 1; i++) {
-            const extent = boundingExtent([coords[i], coords[i + 1]]);
-            const center = getCenter(extent);
-            const line = new LineString([coords[i], coords[i + 1]]);
-            const length = getLength(line);
-            const radius = length / 2;
-            const circle = new Feature({
-              geometry: new Circle(center, radius),
-            });
-            for (let j = 1; j < 5; j++) {
-              const polygon = new Feature({
-                // 从圆创建常规多边形
-                // 参数
-                // circle 圆几何图形
-                // sides 多边形的边数。默认值为 32。
-                // angle 多边形的第一个顶点的起始角度（以逆时针弧度表示）。0 表示东。默认值为 0。
-                geometry: fromCircle(
-                  new Circle(center, radius),
-                  32,
-                  (Math.PI / 360) * 2.25 * j,
-                ),
-              });
-              const points = polygon.getGeometry()?.getCoordinates();
-              // @ts-ignore
-              const poly = turf.polygon(points);
-              if (allPolt) {
-                allPolt = turf.union(allPolt, poly);
-              } else {
-                allPolt = poly;
-              }
-              console.log('points', points);
+
+          // 平滑处理
+          const ll: any = [];
+          for (let i = 0; i < coords[0].length; i++) {
+            const ii = coords[0][i];
+            if (i % 5 === 0) {
+              ll.push(ii);
             }
           }
-          console.log('allPolt', allPolt);
-          const allCoords: any = allPolt?.geometry.coordinates;
-          const cloud = new Feature({
-            geometry: new Polygon([allCoords[0]]),
-          });
-          const cloudStyle = new Style({
-            fill: new Fill({
-              color: '#ffffff',
-            }),
-          });
-          // feat.setStyle(cloudStyle);
-          // cloud.setStyle(cloudStyle);
-          feat.setGeometry();
-          drawSource.addFeatures([cloud]);
+
+          const smoothened = makeSmooth(ll, 5);
+          drawCloud(feat, smoothened, drawSource);
+          geometry.setCoordinates([smoothened]);
         });
         // @ts-ignore
         map.addInteraction(freeDraw);
@@ -476,6 +362,19 @@ const Index: React.FC = () => {
         freeDraw.on('drawend', (event: any) => {
           const feat = event.feature;
           feat.setProperties({ type: 'drew-polygon' });
+          const geometry: any = feat.getGeometry();
+          const coords = geometry.getCoordinates();
+
+          const ll: any = [];
+          for (let i = 0; i < coords[0].length; i++) {
+            const ii = coords[0][i];
+            if (i % 5 === 0) {
+              ll.push(ii);
+            }
+          }
+
+          const smoothened = makeSmooth(ll, 10);
+          geometry.setCoordinates([smoothened]);
         });
         // @ts-ignore
         map.addInteraction(freeDraw);
@@ -498,7 +397,6 @@ const Index: React.FC = () => {
         break;
       case '清除':
         const features = drawSource.getFeatures();
-        console.log('features', features);
         if (!isNullString(features) && features.length > 0) {
           const num = features.length;
           drawSource.removeFeature(features[num - 1]);
