@@ -9,6 +9,7 @@ import * as turf from '@turf/turf';
  * 二叉树的构造函数
  * @author zsm
  * @date 2022/10/14 14:54
+ * @param node 节点
  */
 class TreeNode {
   node: any;
@@ -22,23 +23,42 @@ class TreeNode {
 }
 
 /**
- * 根据先序遍历数组生成满二叉树
+ * 根据先序遍历数组生成二叉树
  * @author zsm
  * @date 2022/10/14 14:43
  * @param NLR 先序遍历数组
+ * @return node 二叉树
  */
-const getTreeNode = (NLR: number[][]) => {
+const getTreeNode = (NLR: any[]) => {
   const n = NLR.length;
+  if (n === 0) {
+    return null;
+  }
   const node = new TreeNode(NLR[0]);
   // 分割数组
-  const left = NLR.slice(1, (n - 1) / 2 + 1);
-  const right = NLR.slice((n - 1) / 2 + 1);
-  if (left.length > 2) {
-    node.left = getTreeNode(left);
-    node.right = getTreeNode(right);
-  }
-  console.log('node', node);
+  const index = (n - 1) / 2 + 1;
+  const left = NLR.slice(1, index);
+  const right = NLR.slice(index);
+  node.left = getTreeNode(left);
+  node.right = getTreeNode(right);
   return node;
+};
+
+/**
+ * 中序遍历二叉树
+ * @author zsm
+ * @date 2022/10/14 19:56
+ * @param tree 二叉树
+ * @param LNR 中序遍历数组
+ * @return LNR 中序遍历数组
+ */
+const getLNR = (tree: TreeNode | null, LNR: any[]) => {
+  if (tree) {
+    getLNR(tree.left, LNR);
+    LNR.push(tree.node);
+    getLNR(tree.right, LNR);
+  }
+  return LNR;
 };
 
 /**
@@ -68,6 +88,8 @@ const splitPoints = (start: any, end: any, space: any, points: any) => {
  * 根据间距获取等距离坐标点
  * @author zsm
  * @date 2022/10/13 09:32
+ * @param coords 坐标点数组
+ * @param space 固定间距
  */
 const getSpacePoints = (coords: any, space: number) => {
   const num = coords.length;
@@ -90,10 +112,9 @@ const getSpacePoints = (coords: any, space: number) => {
 
   const start = pArr[0];
   const end = pArr[pArr.length - 1];
-  const newP = splitPoints(start, end, space, []);
-  const test = splitPoints([0, 0], [8, 0], 1, []);
-  getTreeNode(test);
-  return pArr;
+  const points = splitPoints(start, end, space, []);
+  const newP = getLNR(getTreeNode(points), []);
+  return [...pArr, ...newP.reverse()];
 };
 
 /**
