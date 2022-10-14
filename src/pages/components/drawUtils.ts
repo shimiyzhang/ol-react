@@ -6,6 +6,42 @@ import { boundingExtent, getCenter } from 'ol/extent';
 import * as turf from '@turf/turf';
 
 /**
+ * 二叉树的构造函数
+ * @author zsm
+ * @date 2022/10/14 14:54
+ */
+class TreeNode {
+  node: any;
+  left: any;
+  right: any;
+  constructor(node: number[]) {
+    this.node = node;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+/**
+ * 根据先序遍历数组生成满二叉树
+ * @author zsm
+ * @date 2022/10/14 14:43
+ * @param NLR 先序遍历数组
+ */
+const getTreeNode = (NLR: number[][]) => {
+  const n = NLR.length;
+  const node = new TreeNode(NLR[0]);
+  // 分割数组
+  const left = NLR.slice(1, (n - 1) / 2 + 1);
+  const right = NLR.slice((n - 1) / 2 + 1);
+  if (left.length > 2) {
+    node.left = getTreeNode(left);
+    node.right = getTreeNode(right);
+  }
+  console.log('node', node);
+  return node;
+};
+
+/**
  * 根据间距递归细分坐标点
  * @author zsm
  * @date 2022/10/13 15:55
@@ -21,10 +57,9 @@ const splitPoints = (start: any, end: any, space: any, points: any) => {
   if (length > space) {
     const extent = boundingExtent([start, end]);
     const center = getCenter(extent);
-    console.log('center', center);
     points.push(center);
     splitPoints(start, center, space, points);
-    splitPoints(end, center, space, points);
+    splitPoints(center, end, space, points);
   }
   return points;
 };
@@ -56,8 +91,8 @@ const getSpacePoints = (coords: any, space: number) => {
   const start = pArr[0];
   const end = pArr[pArr.length - 1];
   const newP = splitPoints(start, end, space, []);
-  const test = splitPoints([0, 0], [100, 0], 12.5, []);
-  console.log('test', test);
+  const test = splitPoints([0, 0], [8, 0], 1, []);
+  getTreeNode(test);
   return pArr;
 };
 
